@@ -29,6 +29,7 @@ type (
 
 	// Style tracks K9s styles.
 	Style struct {
+		Header Header `json:"header" yaml:"header"`
 		Body   Body   `json:"body" yaml:"body"`
 		Prompt Prompt `json:"prompt" yaml:"prompt"`
 		Help   Help   `json:"help" yaml:"help"`
@@ -42,14 +43,14 @@ type (
 	Prompt struct {
 		FgColor      Color        `json:"fgColor" yaml:"fgColor"`
 		BgColor      Color        `json:"bgColor" yaml:"bgColor"`
-		SuggestColor Color        `json:"" yaml:"suggestColor"`
-		Border       PromptBorder `json:"" yaml:"border"`
+		SuggestColor Color        `json:"suggestColor" yaml:"suggestColor"`
+		Border       PromptBorder `json:"border" yaml:"border"`
 	}
 
 	// PromptBorder tracks the color of the prompt depending on its kind (e.g., command or filter)
 	PromptBorder struct {
-		CommandColor Color `json:"command" yaml:"command"`
-		DefaultColor Color `json:"default" yaml:"default"`
+		CommandColor Color `json:"commandColor" yaml:"commandColor"`
+		DefaultColor Color `json:"defaultColor" yaml:"defaultColor"`
 	}
 
 	// Help tracks help styles.
@@ -59,6 +60,17 @@ type (
 		SectionColor Color `json:"sectionColor" yaml:"sectionColor"`
 		KeyColor     Color `json:"keyColor" yaml:"keyColor"`
 		NumKeyColor  Color `json:"numKeyColor" yaml:"numKeyColor"`
+	}
+
+	// Header tracks header styles.
+	Header struct {
+		NewK9sVersionColor Color       `json:"newK9sVersionColor" yaml:"newK9sVersionColor"`
+		ClusterInfo        ClusterInfo `json:"clusterInfo" yaml:"clusterInfo"`
+	}
+
+	// ClusterInfo tracks cluster info styles.
+	ClusterInfo struct {
+		NoMetricsColor Color `json:"noMetricsColor" yaml:"noMetricsColor"`
 	}
 
 	// Body tracks body styles.
@@ -82,6 +94,12 @@ type (
 		ButtonFocusBgColor Color `json:"buttonFocusBgColor" yaml:"buttonFocusBgColor"`
 		LabelFgColor       Color `json:"labelFgColor" yaml:"labelFgColor"`
 		FieldFgColor       Color `json:"fieldFgColor" yaml:"fieldFgColor"`
+		Error              Error `json:"error" yaml:"error"`
+	}
+
+	// Error tracks error dialog styles
+	Error struct {
+		FgColor Color `json:"fgColor" yaml:"fgColor"`
 	}
 
 	// Frame tracks frame styles.
@@ -218,6 +236,7 @@ type (
 
 func newStyle() Style {
 	return Style{
+		Header: newHeader(),
 		Body:   newBody(),
 		Prompt: newPrompt(),
 		Help:   newHelp(),
@@ -238,6 +257,13 @@ func newDialog() Dialog {
 		ButtonFocusFgColor: "black",
 		LabelFgColor:       "white",
 		FieldFgColor:       "white",
+		Error:              newError(),
+	}
+}
+
+func newError() Error {
+	return Error{
+		FgColor: "orangered",
 	}
 }
 
@@ -295,6 +321,19 @@ func newHelp() Help {
 		SectionColor: "green",
 		KeyColor:     "dodgerblue",
 		NumKeyColor:  "fuchsia",
+	}
+}
+
+func newHeader() Header {
+	return Header{
+		NewK9sVersionColor: "cadetblue",
+		ClusterInfo:        newClusterInfo(),
+	}
+}
+
+func newClusterInfo() ClusterInfo {
+	return ClusterInfo{
+		NoMetricsColor: "orangered",
 	}
 }
 
@@ -478,6 +517,16 @@ func (s *Styles) fireStylesChanged() {
 	for _, list := range s.listeners {
 		list.StylesChanged(s)
 	}
+}
+
+// Header returns header styles.
+func (s *Styles) Header() Header {
+	return s.K9s.Header
+}
+
+// ClusterInfo returns cluster info styles.
+func (s *Styles) ClusterInfo() ClusterInfo {
+	return s.Header().ClusterInfo
 }
 
 // Body returns body styles.

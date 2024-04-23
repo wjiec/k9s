@@ -102,7 +102,7 @@ func (c *ClusterInfo) ClusterInfoUpdated(data model.ClusterMeta) {
 
 func (c *ClusterInfo) warnCell(s string, w bool) string {
 	if w {
-		return fmt.Sprintf("[orangered::b]%s", s)
+		return fmt.Sprintf("[%s::b]%s", c.styles.ClusterInfo().NoMetricsColor, s)
 	}
 
 	return s
@@ -116,8 +116,10 @@ func (c *ClusterInfo) ClusterInfoChanged(prev, curr model.ClusterMeta) {
 		row := c.setCell(0, curr.Context)
 		row = c.setCell(row, curr.Cluster)
 		row = c.setCell(row, curr.User)
+		curr.K9sLatest = "v1"
 		if curr.K9sLatest != "" {
-			row = c.setCell(row, fmt.Sprintf("%s ⚡️[cadetblue::b]%s", curr.K9sVer, curr.K9sLatest))
+			row = c.setCell(row, fmt.Sprintf("%s ⚡️[%s::b]%s",
+				curr.K9sVer, c.styles.Header().NewK9sVersionColor, curr.K9sLatest))
 		} else {
 			row = c.setCell(row, curr.K9sVer)
 		}

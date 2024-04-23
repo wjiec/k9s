@@ -8,6 +8,18 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "header": {
+          "type": "object",
+          "properties": {
+            "newK9sVersionColor": {"type": "string"},
+            "clusterInfo": {
+              "type": "object",
+              "properties": {
+                "noMetricsColor": {"type": "string"}
+              }
+            }
+          }
+        },
         "body": {
           "type": "object",
           "properties": {
@@ -21,7 +33,14 @@
           "properties": {
             "fgColor": {"type": "string"},
             "bgColor": {"type": "string"},
-            "suggestColor": {"type": "string"}
+            "suggestColor": {"type": "string"},
+            "border": {
+              "type": "object",
+              "properties": {
+                "commandColor": {"type": "string"},
+                "defaultColor": {"type": "string"}
+              }
+            }
           }
         },
         "info": {

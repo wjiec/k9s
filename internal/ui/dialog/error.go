@@ -32,7 +32,7 @@ func ShowError(styles config.Dialog, pages *ui.Pages, msg string) {
 	f.SetFocus(0)
 	modal := tview.NewModalForm("<error>", f)
 	modal.SetText(cowTalk(msg))
-	modal.SetTextColor(tcell.ColorOrangeRed)
+	modal.SetTextColor(styles.Error.FgColor.Color())
 	modal.SetDoneFunc(func(int, string) {
 		dismiss(pages)
 	})

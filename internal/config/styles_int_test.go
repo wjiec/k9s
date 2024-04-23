@@ -15,4 +15,7 @@ func Test_newStyle(t *testing.T) {
 	assert.Equal(t, Color("black"), s.Body.BgColor)
 	assert.Equal(t, Color("cadetblue"), s.Body.FgColor)
 	assert.Equal(t, Color("lightskyblue"), s.Frame.Status.NewColor)
+
+	assert.Equal(t, Color("cadetblue"), s.Header.NewK9sVersionColor)
+	assert.Equal(t, Color("orangered"), s.Header.ClusterInfo.NoMetricsColor)
 }

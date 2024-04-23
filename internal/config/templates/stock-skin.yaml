@@ -4,6 +4,10 @@
 
 # Skin...
 k9s:
+  header:
+    NewK9sVersionColor: cadetblue
+    clusterInfo:
+      noMetricsColor: orangered
   body:
     fgColor: cadetblue
     bgColor: black
@@ -17,8 +21,8 @@ k9s:
     bgColor: black
     suggestColor: dodgerblue
     border:
-      command: aqua
-      default: seagreen
+      commandColor: aqua
+      defaultColor: seagreen
   help:
     fgColor: cadetblue
     bgColor: black
@@ -114,3 +118,8 @@ k9s:
     buttonFocusBgColor: dodgerblue
     labelFgColor: white
     fieldFgColor: white
+    error:
+      fgColor: orangered
+  icon:
+    command: ''
+    filter: ''
