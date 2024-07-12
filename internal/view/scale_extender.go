@@ -95,9 +95,11 @@ func (s *ScaleExtender) makeScaleForm(sels []string) (*tview.Form, error) {
 		}
 		tokens := strings.Split(replicas, "/")
 		if len(tokens) < 2 {
-			return nil, fmt.Errorf("unable to locate replicas from %s", replicas)
+			factor = tokens[0]
+			//return nil, fmt.Errorf("unable to locate replicas from %s", replicas)
+		} else {
+			factor = strings.TrimRight(tokens[1], ui.DeltaSign)
 		}
-		factor = strings.TrimRight(tokens[1], ui.DeltaSign)
 	}
 	f.AddInputField("Replicas:", factor, 4, func(textToCheck string, lastChar rune) bool {
 		_, err := strconv.Atoi(textToCheck)

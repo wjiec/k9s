@@ -5,6 +5,7 @@ package dao
 
 import (
 	"fmt"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sort"
 	"strings"
 	"sync"
@@ -50,13 +51,17 @@ func (m ResourceMetas) clear() {
 
 // Meta represents available resource metas.
 type Meta struct {
-	resMetas ResourceMetas
-	mx       sync.RWMutex
+	resMetas    ResourceMetas
+	resScalable ResourceScalable
+	mx          sync.RWMutex
 }
 
 // NewMeta returns a resource meta.
 func NewMeta() *Meta {
-	return &Meta{resMetas: make(ResourceMetas)}
+	return &Meta{
+		resMetas:    make(ResourceMetas),
+		resScalable: make(ResourceScalable),
+	}
 }
 
 // AccessorFor returns a client accessor for a resource if registered.
@@ -95,6 +100,9 @@ func AccessorFor(f Factory, gvr client.GVR) (Accessor, error) {
 	r, ok := m[gvr]
 	if !ok {
 		r = new(Generic)
+		if MetaAccess.IsScalable(gvr) {
+			r = new(Scaler)
+		}
 		log.Debug().Msgf("No DAO registry entry for %q. Using generics!", gvr)
 	}
 	r.Init(f, gvr)
@@ -192,9 +200,13 @@ func (m *Meta) LoadResources(f Factory) error {
 		return err
 	}
 	loadNonResource(m.resMetas)
-	loadCRDs(f, m.resMetas)
+	loadCRDs(f, m.resMetas, m.resScalable)
 
 	return nil
+}
+
+func (m *Meta) IsScalable(gvr client.GVR) bool {
+	return m.resScalable[gvr] != nil
 }
 
 // BOZO!! Need countermeasures for direct commands!
@@ -402,11 +414,11 @@ func isDeprecated(gvr client.GVR) bool {
 	return ok
 }
 
-func loadCRDs(f Factory, m ResourceMetas) {
+func loadCRDs(f Factory, m ResourceMetas, s ResourceScalable) {
 	if f.Client() == nil || !f.Client().ConnectionOK() {
 		return
 	}
-	oo, err := f.List(crdGVR, client.ClusterScope, false, labels.Everything())
+	oo, err := f.List(crdGVR, client.ClusterScope, true, labels.Everything())
 	if err != nil {
 		log.Warn().Err(err).Msgf("Fail CRDs load")
 		return
@@ -421,6 +433,21 @@ func loadCRDs(f Factory, m ResourceMetas) {
 		meta.Categories = append(meta.Categories, crdCat)
 		gvr := client.NewGVRFromMeta(meta)
 		m[gvr] = meta
+
+		var crd apiextensionsv1.CustomResourceDefinition
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(o.(*unstructured.Unstructured).Object, &crd)
+		if err == nil {
+			var servedVersion *apiextensionsv1.CustomResourceDefinitionVersion
+			for _, ver := range crd.Spec.Versions {
+				if servedVersion == nil || ver.Served {
+					servedVersion = &ver
+				}
+			}
+
+			if servedVersion != nil {
+				s[gvr] = servedVersion.Subresources.Scale
+			}
+		}
 	}
 }
 

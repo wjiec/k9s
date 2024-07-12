@@ -286,7 +286,14 @@ func (c *Command) viewMetaFor(p *cmd.Interpreter) (client.GVR, *MetaViewer, erro
 		p.Amend(ap)
 	}
 
-	v := MetaViewer{viewerFn: NewBrowser}
+	v := MetaViewer{viewerFn: func(gvr client.GVR) ResourceViewer {
+		viewer := NewBrowser(gvr)
+		if dao.MetaAccess.IsScalable(gvr) {
+			viewer = NewScaleExtender(viewer)
+		}
+
+		return viewer
+	}}
 	if mv, ok := customViewers[gvr]; ok {
 		v = mv
 	}

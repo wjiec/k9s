@@ -47,7 +47,7 @@ func (f *Factory) Start(ns string) {
 	f.mx.Lock()
 	defer f.mx.Unlock()
 
-	log.Debug().Msgf("Factory START with ns `%q", ns)
+	log.Debug().Msgf("Factory START with ns %q", ns)
 	f.stopChan = make(chan struct{})
 	for ns, fac := range f.factories {
 		log.Debug().Msgf("Starting factory in ns %q", ns)
@@ -149,7 +149,7 @@ func (f *Factory) waitForCacheSync(ns string) {
 		<-time.After(defaultWaitTime)
 		close(c)
 	}(c)
-	_ = fac.WaitForCacheSync(c)
+	_ = fac.WaitForCacheSync(f.stopChan)
 }
 
 // WaitForCacheSync waits for all factories to update their cache.

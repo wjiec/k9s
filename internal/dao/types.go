@@ -6,6 +6,7 @@ package dao
 import (
 	"context"
 	"io"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"time"
 
 	"github.com/derailed/k9s/internal/client"
@@ -20,6 +21,8 @@ import (
 
 // ResourceMetas represents a collection of resource metadata.
 type ResourceMetas map[client.GVR]metav1.APIResource
+
+type ResourceScalable map[client.GVR]*apiextensionsv1.CustomResourceSubresourceScale
 
 // Accessors represents a collection of dao accessors.
 type Accessors map[client.GVR]Accessor
