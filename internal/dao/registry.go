@@ -431,123 +431,49 @@ func loadCRDs(f Factory, m ResourceMetas) {
 	}
 
 	for _, o := range oo {
-		meta, errs := extractMeta(o)
-		if len(errs) > 0 {
-			log.Error().Err(errs[0]).Msgf("Fail to extract CRD meta (%d) errors", len(errs))
-			continue
-		}
-		meta.Categories = append(meta.Categories, crdCat)
-		gvr := client.NewGVRFromMeta(meta)
-
 		var crd apiextensionsv1.CustomResourceDefinition
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(o.(*unstructured.Unstructured).Object, &crd)
-		if err == nil {
-			var servedVersion *apiextensionsv1.CustomResourceDefinitionVersion
-			for _, ver := range crd.Spec.Versions {
-				if servedVersion == nil || ver.Served {
-					servedVersion = &ver
-				}
-			}
+		if err != nil {
+			log.Error().Err(err).Msg("expecting CRD resource")
+			continue
+		}
 
-			if servedVersion.Subresources != nil && servedVersion.Subresources.Scale != nil {
+		meta, err := extractMeta(&crd)
+		if err != nil {
+			log.Error().Err(err).Msg("Fail to extract CRD meta")
+			continue
+		}
+
+		meta.Categories = append(meta.Categories, crdCat)
+		for _, ver := range crd.Spec.Versions {
+			if ver.Storage && ver.Subresources != nil && ver.Subresources.Scale != nil {
 				meta.Categories = append(meta.Categories, scaleCat)
 			}
 		}
 
+		gvr := client.NewGVRFromMeta(meta)
 		m[gvr] = meta
 	}
 }
 
-func extractMeta(o runtime.Object) (metav1.APIResource, []error) {
-	var (
-		m    metav1.APIResource
-		errs []error
-	)
-
-	crd, ok := o.(*unstructured.Unstructured)
-	if !ok {
-		return m, append(errs, fmt.Errorf("expected unstructured, but got %T", o))
+func extractMeta(crd *apiextensionsv1.CustomResourceDefinition) (metav1.APIResource, error) {
+	m := metav1.APIResource{
+		Name:         crd.Spec.Names.Plural,
+		SingularName: crd.Spec.Names.Singular,
+		Namespaced:   crd.Spec.Scope == apiextensionsv1.NamespaceScoped,
+		Group:        crd.Spec.Group,
+		Kind:         crd.Spec.Names.Kind,
+		ShortNames:   crd.Spec.Names.ShortNames,
+		Categories:   append([]string{}, crd.Spec.Names.Categories...),
 	}
 
-	var spec map[string]interface{}
-	spec, errs = extractMap(crd.Object, "spec", errs)
-
-	var meta map[string]interface{}
-	meta, errs = extractMap(crd.Object, "metadata", errs)
-	m.Name, errs = extractStr(meta, "name", errs)
-
-	m.Group, errs = extractStr(spec, "group", errs)
-	versions, errs := extractSlice(spec, "versions", errs)
-	if len(versions) > 0 {
-		m.Version = versions[0]
-	}
-
-	var scope string
-	scope, errs = extractStr(spec, "scope", errs)
-
-	m.Namespaced = isNamespaced(scope)
-
-	var names map[string]interface{}
-	names, errs = extractMap(spec, "names", errs)
-	m.Kind, errs = extractStr(names, "kind", errs)
-	m.SingularName, errs = extractStr(names, "singular", errs)
-	m.Name, errs = extractStr(names, "plural", errs)
-	m.ShortNames, errs = extractSlice(names, "shortNames", errs)
-
-	return m, errs
-}
-
-func isNamespaced(scope string) bool {
-	return scope == "Namespaced"
-}
-
-func extractSlice(m map[string]interface{}, n string, errs []error) ([]string, []error) {
-	if m[n] == nil {
-		return nil, errs
-	}
-
-	s, ok := m[n].([]string)
-	if ok {
-		return s, errs
-	}
-
-	ii, ok := m[n].([]interface{})
-	if !ok {
-		return s, append(errs, fmt.Errorf("failed to extract slice %s -- %#v", n, m))
-	}
-
-	ss := make([]string, 0, len(ii))
-	for _, name := range ii {
-		switch o := name.(type) {
-		case string:
-			ss = append(ss, o)
-		case map[string]interface{}:
-			s, ok := o["name"].(string)
-			if ok {
-				ss = append(ss, s)
-			} else {
-				errs = append(errs, fmt.Errorf("unable to find key %q in map", n))
-			}
-		default:
-			errs = append(errs, fmt.Errorf("unknown field type %t for key %q", o, n))
+	for _, version := range crd.Spec.Versions {
+		// One and only one version is marked as the stored version.
+		if version.Storage {
+			m.Version = version.Name
+			break
 		}
 	}
 
-	return ss, errs
-}
-
-func extractStr(m map[string]interface{}, n string, errs []error) (string, []error) {
-	s, ok := m[n].(string)
-	if !ok {
-		return s, append(errs, fmt.Errorf("failed to extract string %s", n))
-	}
-	return s, errs
-}
-
-func extractMap(m map[string]interface{}, n string, errs []error) (map[string]interface{}, []error) {
-	v, ok := m[n].(map[string]interface{})
-	if !ok {
-		return v, append(errs, fmt.Errorf("failed to extract field %s", n))
-	}
-	return v, errs
+	return m, nil
 }
