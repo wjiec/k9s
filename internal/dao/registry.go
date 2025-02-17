@@ -363,6 +363,9 @@ func loadPreferred(f Factory, m ResourceMetas) error {
 	for _, r := range rr {
 		for _, res := range r.APIResources {
 			gvr := client.FromGVAndR(r.GroupVersion, res.Name)
+			if strings.Contains(gvr.String(), "cilium") {
+				fmt.Println("YO!!", gvr)
+			}
 			if isDeprecated(gvr) {
 				continue
 			}
@@ -431,7 +434,7 @@ func newGVRFromCRD(crd *apiext.CustomResourceDefinition) (client.GVR, apiext.Cus
 			return client.NewGVRFromMeta(metav1.APIResource{
 				Kind:    crd.Spec.Names.Kind,
 				Group:   crd.Spec.Group,
-				Name:    strings.TrimSuffix(crd.Name, "."+crd.Spec.Group),
+				Name:    crd.Spec.Names.Plural,
 				Version: v.Name,
 			}), v, true
 		}
